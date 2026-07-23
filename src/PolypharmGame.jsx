@@ -1091,31 +1091,64 @@ const TRACKS = ["SHRIMP1.opus", "SHRIMP2.opus"];
 
 function useMusic(volume, muted) {
   const ref = React.useRef(null);
+  const startedRef = React.useRef(false);
+  const volRef = React.useRef(volume);
+  const muteRef = React.useRef(muted);
   const [started, setStarted] = React.useState(false);
+  const [blocked, setBlocked] = React.useState(false);
   const [failed, setFailed] = React.useState(false);
   const [track, setTrack] = React.useState(null);
 
+  /* keep refs current so callbacks never read stale volume */
+  React.useEffect(() => { volRef.current = volume; muteRef.current = muted; }, [volume, muted]);
+
   const playRandom = React.useCallback(() => {
-    const pickIdx = Math.floor(Math.random() * TRACKS.length);
-    const src = TRACKS[pickIdx];
+    const src = TRACKS[Math.floor(Math.random() * TRACKS.length)];
     if (!ref.current) {
       ref.current = new Audio();
       ref.current.addEventListener("ended", () => playRandom());
       ref.current.addEventListener("error", () => setFailed(true));
     }
     ref.current.src = src;
-    ref.current.volume = muted ? 0 : volume;
+    ref.current.volume = muteRef.current ? 0 : volRef.current;
     setTrack(src);
     const p = ref.current.play();
-    if (p && p.catch) p.catch(() => setFailed(true));
-  }, [volume, muted]);
+    if (p && p.catch) {
+      p.catch((err) => {
+        if (err && err.name === "NotAllowedError") {
+          /* browser blocked autoplay: wait for a real click */
+          startedRef.current = false;
+          setStarted(false);
+          setBlocked(true);
+        } else {
+          setFailed(true);
+        }
+      });
+    } else {
+      setBlocked(false);
+    }
+  }, []);
 
-  /* first user gesture starts the soundtrack */
   const start = React.useCallback(() => {
-    if (started) return;
+    if (startedRef.current) return;
+    startedRef.current = true;
     setStarted(true);
+    setBlocked(false);
     playRandom();
-  }, [started, playRandom]);
+  }, [playRandom]);
+
+  /* try immediately on load, then fall back to the first click or keypress
+     anywhere on the page, so the soundtrack covers the title screen too */
+  React.useEffect(() => {
+    start();
+    const onFirst = () => start();
+    window.addEventListener("pointerdown", onFirst);
+    window.addEventListener("keydown", onFirst);
+    return () => {
+      window.removeEventListener("pointerdown", onFirst);
+      window.removeEventListener("keydown", onFirst);
+    };
+  }, [start]);
 
   React.useEffect(() => {
     if (ref.current) ref.current.volume = muted ? 0 : volume;
@@ -1125,7 +1158,7 @@ function useMusic(volume, muted) {
     return () => { if (ref.current) { ref.current.pause(); ref.current.src = ""; } };
   }, []);
 
-  return { start, started, failed, track, skip: playRandom };
+  return { start, started, blocked, failed, track, skip: playRandom };
 }
 
 /* ---------------------------------------------------------- difficulty */
@@ -2472,7 +2505,9 @@ export default function PolypharmGame() {
                 <div className="mt-1.5 flex items-center justify-between text-xs text-slate-500">
                   <span>
                     {music.failed
-                      ? "Audio files not found. Add SHRIMP1.opus and SHRIMP2.opus next to index.html."
+                      ? "Audio files not found. Add SHRIMP1.opus and SHRIMP2.opus to the public folder."
+                      : music.blocked
+                      ? "Click anywhere to start the music."
                       : music.track
                       ? `Now playing ${music.track.replace(".opus", "")}`
                       : "Starts when you begin a shift"}
