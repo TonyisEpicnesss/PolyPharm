@@ -1106,6 +1106,7 @@ function useMusic(volume, muted) {
     const src = TRACKS[Math.floor(Math.random() * TRACKS.length)];
     if (!ref.current) {
       ref.current = new Audio();
+      ref.current.preload = "auto";
       ref.current.addEventListener("ended", () => playRandom());
       ref.current.addEventListener("error", () => setFailed(true));
     }
@@ -1113,10 +1114,15 @@ function useMusic(volume, muted) {
     ref.current.volume = muteRef.current ? 0 : volRef.current;
     setTrack(src);
     const p = ref.current.play();
-    if (p && p.catch) {
-      p.catch((err) => {
+    if (p && p.then) {
+      p.then(() => {
+        /* only now is playback genuinely running */
+        startedRef.current = true;
+        setStarted(true);
+        setBlocked(false);
+      }).catch((err) => {
         if (err && err.name === "NotAllowedError") {
-          /* browser blocked autoplay: wait for a real click */
+          /* autoplay blocked: stay unstarted so the next click retries */
           startedRef.current = false;
           setStarted(false);
           setBlocked(true);
@@ -1125,29 +1131,23 @@ function useMusic(volume, muted) {
         }
       });
     } else {
-      setBlocked(false);
+      startedRef.current = true;
+      setStarted(true);
     }
   }, []);
 
   const start = React.useCallback(() => {
     if (startedRef.current) return;
-    startedRef.current = true;
-    setStarted(true);
-    setBlocked(false);
     playRandom();
   }, [playRandom]);
 
-  /* try immediately on load, then fall back to the first click or keypress
-     anywhere on the page, so the soundtrack covers the title screen too */
+  /* attempt on load, then retry on any interaction anywhere until it takes */
   React.useEffect(() => {
     start();
     const onFirst = () => start();
-    window.addEventListener("pointerdown", onFirst);
-    window.addEventListener("keydown", onFirst);
-    return () => {
-      window.removeEventListener("pointerdown", onFirst);
-      window.removeEventListener("keydown", onFirst);
-    };
+    const evts = ["pointerdown", "mousedown", "click", "keydown", "touchstart"];
+    evts.forEach((e) => window.addEventListener(e, onFirst, { passive: true }));
+    return () => evts.forEach((e) => window.removeEventListener(e, onFirst));
   }, [start]);
 
   React.useEffect(() => {
@@ -1227,7 +1227,7 @@ function AboutPanel({ onClose }) {
   let n = 0;
   return (
     <div className="fixed inset-0 z-30 flex items-start justify-center overflow-y-auto bg-slate-900 bg-opacity-80 p-4">
-      <div className="my-4 w-full max-w-2xl rounded-lg bg-white p-6 shadow-2xl">
+      <div className="my-4 w-full max-w-2xl rounded-lg bg-white p-6 text-slate-900 shadow-2xl">
         <div className="flex items-start justify-between gap-4">
           <div>
             <h2 className="text-2xl font-black tracking-tight">About POLYPHARM</h2>
