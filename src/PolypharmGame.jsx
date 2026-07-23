@@ -1223,6 +1223,246 @@ const PILL_KINDS = [
   { a: "#a5f3fc", b: "#a5f3fc", shape: "oblong" },
 ];
 
+function Rule({ label, children }) {
+  return (
+    <div className="mt-2 flex gap-3">
+      <div className="w-28 shrink-0 text-xs font-semibold text-slate-700">{label}</div>
+      <div className="flex-1 text-xs leading-relaxed text-slate-600">{children}</div>
+    </div>
+  );
+}
+
+function HowToPlayPanel({ onClose }) {
+  return (
+    <div className="fixed inset-0 z-30 flex items-start justify-center overflow-y-auto bg-slate-900 bg-opacity-80 p-4">
+      <div className="my-4 w-full max-w-2xl rounded-lg bg-white p-6 text-slate-900 shadow-2xl">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-2xl font-black tracking-tight">How to play</h2>
+            <p className="mt-1 text-sm text-slate-600">
+              Treat the patient without harming them. That is the whole game.
+            </p>
+          </div>
+          <button onClick={onClose} className="rounded bg-slate-900 px-3 py-1.5 text-sm font-medium text-white">
+            Close
+          </button>
+        </div>
+
+        {/* ---- the loop ---- */}
+        <section className="mt-6">
+          <h3 className="text-sm font-bold uppercase tracking-wide text-slate-500">The basic loop</h3>
+          <ol className="mt-2 space-y-1.5">
+            {[
+              "Pick a case from a ward.",
+              "Read the patient. Note any home medications they are already taking.",
+              "Add drugs from your formulary until the treatment target is filled.",
+              "Sign the orders to find out what happened.",
+              "Clear the ward boss to unlock the next ward.",
+            ].map((t, i) => (
+              <li key={i} className="flex gap-2 text-xs leading-relaxed text-slate-600">
+                <span className="shrink-0 font-mono text-slate-400">{i + 1}.</span>
+                <span>{t}</span>
+              </li>
+            ))}
+          </ol>
+        </section>
+
+        {/* ---- navigation ---- */}
+        <section className="mt-5">
+          <h3 className="text-sm font-bold uppercase tracking-wide text-slate-500">Getting around</h3>
+          <Rule label="Wards">
+            The main map. Each ward has two regular cases and one boss, marked in red. Cleared cases
+            turn green. Locked wards open when you beat the previous boss.
+          </Rule>
+          <Rule label="Binder">
+            Every card in the game. The ones you own are shown in full; the rest are dashed
+            placeholders telling you which ward they come from. Tap any owned card to enlarge it.
+          </Rule>
+          <Rule label="Type chart">
+            Your reference sheet. Both interaction matrices plus the mnemonics the game teaches. Open
+            it mid-case if you get stuck; there is no penalty for looking.
+          </Rule>
+          <Rule label="Open pack">
+            Top right. Lights up amber when you have packs waiting.
+          </Rule>
+        </section>
+
+        {/* ---- inside a case ---- */}
+        <section className="mt-5">
+          <h3 className="text-sm font-bold uppercase tracking-wide text-slate-500">Inside a case</h3>
+          <Rule label="Your formulary">
+            Every card you own, on the right. Tap one to add it to the regimen.
+          </Rule>
+          <Rule label="Current regimen">
+            What the patient is on right now. Tap Stop to remove something you added.
+          </Rule>
+          <Rule label="Home meds">
+            Drugs the patient arrived on. You can Deprescribe most of them, and sometimes that is
+            exactly the right move. Anything marked Required cannot be stopped.
+          </Rule>
+          <Rule label="Sign the orders">
+            Commits your regimen and scores it. Reset puts the patient back to their home medications
+            so you can try a different approach.
+          </Rule>
+        </section>
+
+        {/* ---- the meters ---- */}
+        <section className="mt-5">
+          <h3 className="text-sm font-bold uppercase tracking-wide text-slate-500">The three meters</h3>
+          <div className="mt-2 space-y-2">
+            <div className="rounded border border-slate-200 p-2">
+              <div className="flex items-center gap-2">
+                <span className="h-2 w-8 rounded bg-emerald-500" />
+                <span className="text-xs font-semibold">Patient safety</span>
+              </div>
+              <p className="mt-1 text-xs leading-relaxed text-slate-600">
+                Starts at 100. Interactions, contraindications and unnecessary drugs all take points
+                off. Hit zero and you lose the case. On most difficulties this is hidden until you
+                sign.
+              </p>
+            </div>
+            <div className="rounded border border-slate-200 p-2">
+              <div className="flex items-center gap-2">
+                <span className="h-2 w-8 rounded bg-cyan-600" />
+                <span className="text-xs font-semibold">Treatment target</span>
+              </div>
+              <p className="mt-1 text-xs leading-relaxed text-slate-600">
+                What you actually have to fix. This is why prescribing nothing never wins. A drug
+                only fills this bar if it treats the problem in front of you.
+              </p>
+            </div>
+            <div className="rounded border border-slate-200 p-2">
+              <div className="flex items-center gap-2">
+                <span className="h-2 w-8 rounded bg-violet-500" />
+                <span className="text-xs font-semibold">Care quality</span>
+              </div>
+              <p className="mt-1 text-xs leading-relaxed text-slate-600">
+                Only on some cases. Tracks the thing you must not break while solving the main
+                problem, such as leaving the patient's pain untreated or stopping their
+                anticoagulation. Missing it still clears the case but costs half a life.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* ---- how drugs interact ---- */}
+        <section className="mt-5">
+          <h3 className="text-sm font-bold uppercase tracking-wide text-slate-500">How drugs interact</h3>
+          <p className="mt-2 text-xs leading-relaxed text-slate-600">
+            Every card has two typings, and they fail in opposite directions.
+          </p>
+          <Rule label="Clearance">
+            How the drug leaves the body: liver, kidney, or glucuronidation. Block that route and the
+            level climbs toward toxicity. Speed it up and the drug stops working. Organ failure does
+            the same thing a drug can.
+          </Rule>
+          <Rule label="Receptor type">
+            What the drug does at receptors: serotonergic, QT prolonging, anticholinergic, sedating,
+            dopamine blocking, or seizure threshold lowering. Stack two of the same type and you get
+            a named syndrome.
+          </Rule>
+          <Rule label="Two exceptions">
+            Not every combination is bad. Two pairings on the type chart are protective and will
+            raise your safety score. Find them.
+          </Rule>
+          <Rule label="Fields">
+            Orange tags on a patient, such as pregnancy or long QT. They re-score every card on the
+            board. A drug that is fine in one patient can be contraindicated in the next.
+          </Rule>
+          <Rule label="Indications">
+            Adding a drug that treats nothing this patient has costs you points. Every drug on the
+            list should be doing a job.
+          </Rule>
+        </section>
+
+        {/* ---- packs ---- */}
+        <section className="mt-5">
+          <h3 className="text-sm font-bold uppercase tracking-wide text-slate-500">Cards and packs</h3>
+          <Rule label="Earning packs">
+            One pack per case cleared, three for a boss. Press Open pack in the header to open one.
+          </Rule>
+          <Rule label="What is inside">
+            Five cards drawn from your current ward and every ward before it. At least one Rare or
+            better is guaranteed if you have gone a while without one.
+          </Rule>
+          <Rule label="Guaranteed cards">
+            Entering a ward hands you its core drugs automatically, and every boss drops a specific
+            card. You can always win every case with the cards you are guaranteed, so bad luck can
+            never block you.
+          </Rule>
+          <Rule label="Rarity">
+            Rarity means clinical danger, not power. Common cards are forgiving. Black Box cards like
+            clozapine and the MAOIs are powerful and will end a case if you misuse them.
+          </Rule>
+          <Rule label="Repeat offenders">
+            Cards you have made mistakes with are weighted more heavily in future packs, so the game
+            keeps handing you the ones you have not learned yet.
+          </Rule>
+        </section>
+
+        {/* ---- lives ---- */}
+        <section className="mt-5">
+          <h3 className="text-sm font-bold uppercase tracking-wide text-slate-500">Lives and difficulty</h3>
+          <div className="mt-2 overflow-x-auto">
+            <table className="w-full border-collapse text-xs">
+              <thead>
+                <tr className="border-b border-slate-300 text-left">
+                  <th className="py-1 pr-2 font-semibold">Level</th>
+                  <th className="py-1 pr-2 font-semibold">Lives</th>
+                  <th className="py-1 pr-2 font-semibold">Cards show</th>
+                  <th className="py-1 font-semibold">Hints</th>
+                </tr>
+              </thead>
+              <tbody className="text-slate-600">
+                {[
+                  ["M3", "Infinite", "Everything", "Always on"],
+                  ["M4", "8", "Everything", "After a mistake"],
+                  ["Intern", "5", "No drug class", "After a mistake"],
+                  ["Chief resident", "3", "No class or side effects", "After a mistake"],
+                  ["Attending", "1", "No class or side effects", "Never"],
+                ].map((r) => (
+                  <tr key={r[0]} className="border-b border-slate-100">
+                    {r.map((c, i) => <td key={i} className="py-1 pr-2">{c}</td>)}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <Rule label="Losing a life">
+            A full heart for killing or seriously harming the patient. Half a heart for leaving them
+            undertreated, for avoidable harm, or for missing the care quality bar.
+          </Rule>
+          <Rule label="Boss cases">
+            Bosses demand a genuinely clean regimen, not just a surviving patient. Scraping through
+            with a damaged patient will not clear one.
+          </Rule>
+          <Rule label="Running out">
+            At zero hearts your career ends and you get the front page you deserve. On M3 you cannot
+            lose, so use it to learn the type chart.
+          </Rule>
+        </section>
+
+        {/* ---- tips ---- */}
+        <section className="mt-5 rounded border border-cyan-200 bg-cyan-50 p-3">
+          <h3 className="text-xs font-bold uppercase tracking-wide text-cyan-900">If you are stuck</h3>
+          <ul className="mt-1.5 space-y-1 text-xs leading-relaxed text-cyan-900">
+            <li>Read the interaction log after signing. It explains every hit in full, and that is the actual teaching.</li>
+            <li>Check the patient's home medications before adding anything. Most traps are already on the board.</li>
+            <li>Open the Type chart tab mid-case. It is free.</li>
+            <li>Tap any card to read its mechanism, uses, warnings and a link to the full monograph.</li>
+            <li>Fewer drugs is usually the answer. If a drug is not treating something, take it off.</li>
+            <li>Failed a case? Links to every drug involved appear so you can read up before retrying.</li>
+          </ul>
+        </section>
+
+        <button onClick={onClose} className="mt-5 w-full rounded bg-slate-900 py-2.5 text-sm font-bold text-white">
+          Back
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function AboutPanel({ onClose }) {
   let n = 0;
   return (
@@ -1569,6 +1809,7 @@ export default function PolypharmGame() {
   const [revealed, setRevealed] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
   const [volume, setVolume] = useState(0.35);
   const [muted, setMuted] = useState(false);
   const music = useMusic(volume, muted);
@@ -1758,6 +1999,7 @@ export default function PolypharmGame() {
       <div className="relative min-h-screen overflow-hidden bg-slate-900 font-sans text-slate-100">
         <PillRain />
         {showAbout && <AboutPanel onClose={() => setShowAbout(false)} />}
+        {showHelp && <HowToPlayPanel onClose={() => setShowHelp(false)} />}
         <div className="relative z-10 mx-auto flex min-h-screen max-w-2xl flex-col justify-center p-6">
           <div className="rounded-xl border border-slate-700 bg-slate-800 p-8 shadow-2xl">
             <div className="text-center">
@@ -1811,9 +2053,16 @@ export default function PolypharmGame() {
             </div>
 
             <button
+              onClick={() => setShowHelp(true)}
+              className="mt-6 w-full rounded-lg border border-slate-600 bg-slate-900 py-2.5 text-sm font-semibold text-slate-200 hover:border-slate-400"
+            >
+              How to play
+            </button>
+
+            <button
               onClick={beginGame}
               disabled={!nameInput.trim()}
-              className={`mt-7 w-full rounded-lg py-3 text-lg font-bold transition ${
+              className={`mt-2 w-full rounded-lg py-3 text-lg font-bold transition ${
                 nameInput.trim()
                   ? "bg-cyan-400 text-slate-900 hover:bg-cyan-300"
                   : "cursor-not-allowed bg-slate-700 text-slate-500"
@@ -1913,6 +2162,13 @@ export default function PolypharmGame() {
               aria-label={muted ? "Unmute music" : "Mute music"}
             >
               {muted ? "\u{1F507}" : "\u{1F50A}"}
+            </button>
+            <button
+              onClick={() => setShowHelp(true)}
+              className="rounded bg-slate-700 px-2 py-1 hover:bg-slate-600"
+              title="How to play"
+            >
+              How to play
             </button>
             <button
               onClick={() => setShowSettings(true)}
@@ -2419,6 +2675,7 @@ export default function PolypharmGame() {
         )}
 
         {showAbout && <AboutPanel onClose={() => setShowAbout(false)} />}
+        {showHelp && <HowToPlayPanel onClose={() => setShowHelp(false)} />}
 
         {/* ------------------------------------------------------ SETTINGS */}
         {showSettings && (
@@ -2522,8 +2779,14 @@ export default function PolypharmGame() {
 
               <div className="mt-4 border-t pt-4">
                 <button
+                  onClick={() => { setShowSettings(false); setShowHelp(true); }}
+                  className="block text-sm font-medium text-cyan-700 underline"
+                >
+                  How to play: navigation, rules and scoring
+                </button>
+                <button
                   onClick={() => { setShowSettings(false); setShowAbout(true); }}
-                  className="text-sm font-medium text-cyan-700 underline"
+                  className="mt-2 block text-sm font-medium text-cyan-700 underline"
                 >
                   About this game, how it was made, and its sources
                 </button>
